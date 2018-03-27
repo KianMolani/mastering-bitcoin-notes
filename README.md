@@ -1,4 +1,5 @@
-notes-template
-==============
+# Mastering Bitcoin Course Notes
 
-A simple template for notes taken in courses at the University of Waterloo
+## Description 
+These notes summarize the topic covered by Andreas M. Antonopoulous in Mastering Bitcoin.
+
