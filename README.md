@@ -1,5 +1,4 @@
 # Mastering Bitcoin Course Notes
 
-## Description 
-These notes summarize the topic covered by Andreas M. Antonopoulous in Mastering Bitcoin.
+These notes summarize the topics covered by Andreas M. Antonopoulos in Mastering Bitcoin.
 
