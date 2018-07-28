@@ -31,29 +31,648 @@
 	% Abstract
 	\doabstract{These notes are intended as a resource for the contributors; or past, present, or future readers of this book, and anyone interested in the material. The goal is to provide an end-to-end resource that covers all material discussed in the book displayed in an organized manner. If you spot any errors or would like to contribute, please contact the contributors direclty.}
 	% Section one
-	\section{Introduction}
-	% Section two
-	\section{How Bitcoin Works}
-	% Section three
-	\section{Keys, Addresses}
-	The Bitcoin protocol relies heavily on two fundamental concepts of cryptography--- digital signatures (proving knowledge of a secret), and digital fingerprints (proving authenticity of data).
-		\subsection{Introduction}
-		Ownership of Bitcoin is established by the ownership of digital keys, Bitcoin addresses and digital signatures.
-		\begin{defn}(digital keys) a private and public key pair generated and managed independently of the Bitcoin protocol that are stored locally by the user or in a simple database (wallet). Digital keys enable decentralized trust and control, ownership attestation, and the cryptographic-proof security model.\end{defn}
-		\begin{defn}(Bitcoin address) a digital fingerprint usually generated from a public key corresponding to a user of the network; however, it is plausible that the digital fingerprint can represent deployed scripts.\end{defn}
-		\begin{defn}(digital signature) a signature generated from a private key used to spend funds and testify ownership.\end{defn}
-		\subsection{Asymmetric Cryptography}
-		Asymmetric cryptography is used by the Bitcoin protocol to generate digital signatures. A private key is prescribed with a transaction to produce a numerical signature. This signature can only be produced with knowledge of the private key; however, anyone with access to the public key and the transaction fingerprint can use them to verify the signature (hence asymmetric). Thus, ownership and control over this private key is critical in safeguarding funds associated with the Bitcoin address.
-		\subsection{Private Keys}
-		A private is generated from a random 256-bit number usually encoded in Base58 checksum format. The range of addresses is fixed between the range $[1,\ n-1]$, where $n$ is the constant $1.58*10^{77}$ defined as the order of the elliptic curved used by Bitcoin. It is critical to ensure sufficient 256 bits of entropy; therefore, it is suggested to used \tc{HASH256(CSPRNG(seed))} whilst ensuring the output iss less than $n-1$. 
-		\subsection{Public Keys}
-			\subsubsection{Elliptic Curve Cryptography}
-			\subsubsection{Generating a Public Key}
-		\subsection{Addresses}
-			\subsubsection{Base58 and Base58Check Encoding}
-			\subsubsection{Key Formats}
-		\subsection{Advanced Key and Addresses}
-			\subsubsection{Encrypted Private Keys}
-			\subsubsection{Pay-to-Script Hash (P2PHS) and Multisig Addresses}
-% End document
+\section{Introduction}
+
+\subsection{What is Bitcoin?}
+
+\textit{"...akin to Internet of money ... a network of propagating value ... securing ownership of digital assets through computational work"}
+
+\begin{itemize}
+    \item Bitcoin users communicate using \textbf{bitcoin protocol}, primarily via Internet
+    \begin{itemize}
+        \item [$+$] available across many devices $\implies$ easy access
+        \item [$+$] perfect form of money for Internet, because fast, secure, borderless
+    \end{itemize}
+    \item No physical coins (or digital coins per se), but implied through \textbf{transactions} that transfer value from sender to recipient
+    \item Prerequisite for spending bitcoin: \textbf{keys} to sign transactions and hence unlock value (spent by transferring to new owner) and \textbf{digital wallet} used to store keys
+    \item Network \textbf{distributed, peer-to-peer} and new bitcoin created through \textbf{mining}
+    \begin{itemize}
+        \item [$\diamond$] anyone running full bitcoin protocol stack may operate as miner
+        \item [$+$] mining decentralized currency-issuance and clearing function $\implies$ no central bank required
+    \end{itemize}
+    \item Computational work req. to mine dynamically adjusted with time so that block added every $\sim$10 minutes (avg)
+    \item Protocol also halves number of BTC created every 4 years $\implies$ fixed number in circulation at 21 million ($\sim$2140). Diminishing rate of issuance means bitcoin \textbf{deflationary} (therefore, inflating by "printing" cannot happen)
+    \item In summary, bitcoin consists of: (1) a decentralized peer-to-peer network (the bitcoin protocol), (2) a public transaction ledger (\textbf{the blockchain}), (3) a set of rules for independent transaction validation and currency issuance (\textbf{consensus rules}), (4) a mechanism for reaching global decentralized consensus on the valid blockchain (\textbf{POW algorithm})
+\end{itemize}
+
+\begin{tcolorbox}
+\textbf{Digital Currencies Before Bitcoin}
+\begin{itemize}
+    \item Cryptography, bits, and the problem of digital money:
+    \begin{enumerate}
+        \item Can I trust that money is authentic and not counterfeit?
+        \item "Double spend" problem
+        \item Can I be sure that no one else can claim this money belongs to them and not me?
+    \end{enumerate}
+    Paper money handles (1) and (2) easily (also with help from digital storage and transmission by clearing through central banks. Think\eye over global circulation). Digital money handles (1) (and apparently (2)) through \textbf{cryptographic digital signatures}
+\end{itemize}
+\begin{itemize}
+    \item Late 1980s: cryptography for digital currencies (at first backed by national currency or gold) $\rightarrow$ worked but was centralized (central clearinghouse) $\rightarrow$ target of governments and hackers (at times, complete and abrupt liquidation)
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{History of Bitcoin}
+\begin{itemize}
+    \item 2008: \textit{"Bitcoin: A Peer-to-Peer Electronic Cash System"} by Satoshi Nakamoto (alias) $\rightarrow$ b-money, Hash-Cash, and POW concept (solves double spend problem, with no need for central clearing house)
+    \item 2009: the bitcoin network based on reference implementation by Nakamoto (since revised). Implementation of POW alogirhtm (mining) has increased in power exponentially. BTC total market value has at times exceeded 300 billion USD (dependant on bitcoin-to-dollar exchange rate). Largest transaction: 150 million USD (*) (done instantly and w/ no fees).
+    \item April 2011: Nakamoto withdrew from public, leaving project to group of volunteers (protocol now open source and hence fully transparent)
+\end{itemize}
+    
+\begin{tcolorbox}
+\textbf{A Solution to a Distributed Computing Problem}
+\begin{itemize}
+    \item POW algorithm can be used to solve "Byzantine Generals' Problem" $\rightarrow$ consensus activated w/o central trusted authority $\rightarrow$ breakthrough in distributing computing and wide applicability beyond currency (ex: to prove fairness of elections, for lotteries, asset registries, digital monetization, etc.)
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Bitcoin Uses, Users, and Their Stories}
+\begin{itemize}
+    \item \textit{North American low-value retail}: story introduces to software, exchanges, and basic transactions of a retail consumer
+    \item \textit{North American high-value retail}: story introduces to \textbf{"51 percent consensus attack"} for retailers of high-value items
+    \item \textit{Offshore contract services}: story examines the use of bitcoin for outsourcing, contract services, and international wire transfers (?)
+    \item \textit{Web store}
+    \item \textit{Charitable donations}: story shows use of bitcoin for global fundraising across currencies and borders, and use of open ledger for transparency ((+) quick distribution of funds)
+    \item \textit{Import/export}: story shows use of bitcoin for large business-to-business international payments tied to physical goods ((+) accelerate process of payment for import)
+    \item \textit{Mining for bitcoin}: story will examine "industrial" base of bitcoin (the specialized equipment used to secure bitcoin network and issue new currency)
+\end{itemize}
+
+\subsection{Getting Started}
+\begin{itemize}
+    \item Client application must be used to access bitcoin protocol $\rightarrow$ bitcoin wallet is UI for bitcoin system (web browsers and HTTP protocol analogy). Different wallets vary in quality, performance, security, privacy, and reliability
+    \begin{itemize}
+        \item [$\diamond$] "Satoshi Client" or "Bitcoin Core" is reference implementation of bitcoin protocol that includes wallet. It is derived from original implementation
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Choosing Your Bitcoin Wallet}
+\text{1-5 by platform, 6-8 by degree of autonomy and type of interaction with bitcoin network}
+\begin{itemize}
+    \item \textit{Desktop wallet}: first (reference implementation); (+) features, autonomy, control; (-) security disadvantage from OS
+    \item \textit{Mobile wallet}: most common; (+) designed to be simple and easy to use (some fully featured for power users)
+    \item \textit{Web wallet}: accessed through web browser (wallet stored on third-party server); (+) ease-of-use; (-) third party keeps control of bitcoin keys for user, so don't store large amounts o bitcoin (though some use client-side code running in web browser)
+    \item \textit{Hardware wallet}: wallet self-contained on special-purpose hardware (USB for web browser or NFC for mobile); (+) very secure, can store large amounts
+    \item \textit{Paper wallet}: for long term storage (offline storage also called "cold storage"); (+) very secure
+    \item \textit{Full-node client}: entire history of all transactions ever stored, manages users' wallets, direct initiation of transactions on network, handles all aspects of protocol, can independently validate entire blockchain and any transaction; (+) complete autonomy and independent transaction verification; (-) consume substantial computing resources ($<$125 GB disk, 2GB RAM)
+    \item \textit{Lightweight client (or SPV)}: connects to full nodes for access to bitcoin transaction info, wallet stored locally, creates and validates and transmits transactions independently, interact directly with bitcoin network (no intermediary)
+    \item \textit{Third-party API client}: interacts with network through third-party system or API (indirect), wallet can be stored by user or third party servers, but all transactions go through third party
+\end{itemize}
+
+\subsubsection{Quick Start}
+\textit{"a wallet is simply a collection of addresses and the keys that unlock funds within"}
+\begin{itemize}
+    \item How can Alice get started? $\rightarrow$ get a bitcoin wallet (book uses mobile wallet "Mycelium" for Android. When application first runs, it creates a wallet, as seen in Figure 1-1 of the book). Important features here: bitcoin address and associated QR code, private key (generated alongside address)
+    \begin{itemize}
+        \item [$\diamond$] bitcoin address starts with a 1 or 3, acts like an email address (can be shared w/o security risk for users to send bitcoin to wallet. Unlike email, can create as many addresses as you like (many new wallets create a new address for each transaction to maximize privacy))
+        \item [$\diamond$] bitcoin not part of network or any externally identifiable information (including user's name) until associated with transaction
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Getting Your First Bitcoin}
+\begin{itemize}
+    \item "Cannot yet buy bitcoin at a bank or foreign exchange kiosk"
+    \item Bitcoin transactions are \textbf{irreversible} $\rightarrow$ introduces risk of defrauding by reversing electronic payments $\rightarrow$ to mitigate, companies e-payment for bitcoin require identity verification and credit-worthiness checks $\implies$ as new user, cannot instantly buy with credit card
+    \item As new user, you can: find a friend or use https://meetup.com, use classified service like localbitcoins.com to find seller locally and meet up in person, use bitcoin ATM (http://coinatmradar.com), earn bitcoin by selling products or services, use a bitcoin currency exchange linked to your bank account (online)
+\end{itemize}
+\begin{flushleft}
+    \text Aside: advantage of bitcoin is privacy (not required to divulge sensitive and personally identifiable info to third parties). This is not true where bitcoin touches traditional systems (ex: currency exchanges). Also, once bitcoin address attached to identity, all associated transactions easy to track, which is one reason to unlink exchange account to wallet
+\end{flushleft}
+
+\subsubsection{Finding the Current Price of Bitcoin}
+\begin{itemize}
+    \item Must first agree on \textbf{exchange rate} between BTC and USD (done automatically on most wallets). But who sets the bitcoin price? $\rightarrow$ Short answer: markets $\rightarrow$ Long answer: Bitcoin has \textbf{floating exchange rate} $\rightarrow$ price of bitcoin in USD calculated in each market based on most recent trade (from BTC to USD) $\rightarrow$ price fluctuates minutely several times per second $\rightarrow$ pricing service calculates volumne-weighted average of all these trades across various markets to find broad market exchange rate
+    \item Most popular pricing services: Bitcoin Average (exchange rate for bitcoin), CoinCap (market capitalization and exchange rate for hundreds of cryptocurrencies), CMEBRR (a reference rate used for institutional and contractual reference, provided as part of investment data feeds by CME)
+\end{itemize}
+
+\subsubsection{Sending and Receiving Bitcoin}
+\begin{itemize}
+    \item Alice-Joe: Alice (Mycelium) clicks receive to "listen" to published transactions on bitcoin network with one that matches her address. Joe (Airbits) inputs destination address (can scan QR code) and amount (in BTC or USD) and sends $\rightarrow$ mobile wallet constructs transaction that assigns amount to address and signs with private keys to tell bitcoin network that Joe has authorized transfer of value to Alice's new address $\rightarrow$ transmission propagates through peer-to-peer protocol across bitcoin network, where in less than a second almost all of the well connected nodes in network receive transaction and see Alice's address for first time $\rightarrow$ few seconds later, Alice's wallet indicates that it is receiving \textit{x} BTC
+    \item At first, Alice sees transaction as "unconfirmed", meaning that it has propagated to network but not yet recorded on blockchain. Clearing, as is known in traditional finance, happens every $\sim$10 minutes (avg.)
+\end{itemize}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                          CHAPTER 02                           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\section{How Bitcoin Works}
+\subsection{Transactions, Blocks, Mining, and the Blockchain}
+\begin{itemize}
+    \item Unlike traditional banking, bitcoin system based on \textit{decentralized trust}, where trust is achieved as an \textit{emergent property} from interactions of different participants in the bitcoin system
+\end{itemize}
+
+\subsubsection{Bitcoin Overview}
+\begin{tcolorbox}
+\begin{minipage}{0.55\linewidth}
+    \includegraphics[scale=0.8]{mbc2_0201.png}
+\end{minipage}\hfil
+\begin{minipage}{0.36\linewidth}
+\begin{itemize}
+    \item \textbf{Blockchain explorers} are web applications that operate as bitcoin search engines, that allows you to visually track a transaction through each step in the bitcoin network (can search for addresses, transactions (their hashes), and blocks (their numbers and hashes))
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsubsection{Buying a Cup of Coffee}
+\begin{itemize}
+    \item Alice buys from Bob, who has added bitcoin to point of sale system $\rightarrow$ displays payment request QR code (components of URL: a bitcoin address, payment amount, label for recipient address, description for payment) $\rightarrow$ Bob sees transaction on register after a few seconds
+    \item Bitcoin network can transact in fractional values, from 1 satoshi (1/100000000) to 21,000,000
+\end{itemize}
+
+\subsection{Bitcoin Transactions}
+\begin{itemize}
+    \item \textit{Chain of ownership} concept and authorization
+\end{itemize}
+
+\subsubsection{Transaction Inputs and Outputs}
+\begin{itemize}
+    \item Input contains info to confirm ownership, output to assign new owners 
+\end{itemize}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.8]{mbc2_0203.png}
+\end{minipage}\hfil
+\begin{minipage}{0.5\linewidth}
+\begin{itemize}
+    \item Transaction also contains proof of ownership for each input (through a digital signature), which can be independently validated by anyone. In bitcoin terms, "spending" is signing a transaction that transfers value from previous transaction over to new owner identified by a bitcoin address
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsubsection{Transaction Chains}
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.7]{mbc2_0204.png}
+\end{minipage}\hfil
+\begin{minipage}{0.5\linewidth}
+\begin{itemize}
+    \item Output of one transaction is input of next transaction
+    \item Alice's key provides signature that unlocks previous transaction output, proving to network that she owns funds. She attaches payment to Bob's address, transferring value from Alice to Bob (Bob must also sign to spend)
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsubsection{Making Change}
+\begin{itemize}
+    \item Unless wallet can aggregate exact amount (including transaction fees), change exists. This is because transaction inputs, like currency notes, cannot be divided.
+    \item \textit{Change address} does not have to be same address as that of input, and for privacy reasons is often a new address from owner's wallet
+    \item Depending on wallet software, can aggregate many small inputs or few to one large input for payments (predicament is exactly as with cash. Bitcoin wallet developers strive to find balance)
+\end{itemize}
+
+\subsubsection{Common Transaction Forms on Bitcoin Ledger}
+\begin{tcolorbox}
+\begin{minipage}{0.2\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0205.png}
+\end{minipage}\hfil
+\begin{minipage}{0.5\linewidth}
+\begin{itemize}
+    \item Most common transaction
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.2\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0205.png}
+\end{minipage}\hfil
+\begin{minipage}{0.5\linewidth}
+\begin{itemize}
+    \item Transaction aggregating funds (ex: wallets to clean up change -- equivalent to exchanging change for bill
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.2\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0206.png}
+\end{minipage}\hfil
+\begin{minipage}{0.5\linewidth}
+\begin{itemize}
+    \item Transaction distributing funds (ex: commercial entities distributing funds for payroll payments to employees)
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsection{Constructing a Transaction}
+\begin{itemize}
+    \item Solution of appropriate inputs and outputs handled by wallet (i.e. HOW to aggregate transaction inputs (see above) and what will change amount and transaction fee be). User need only specify destination address and amount
+    \item Transactions (including signatures) can be constructed offline
+\end{itemize}
+
+\subsubsection{Getting the Right Inputs}
+\begin{itemize}
+    \item For (total) transaction inputs, need to find BTC $>=$ payment amount $\rightarrow$ keep track of unspent OUTPUTS To associated to \textbf{your} address in transactions (full node clients see \textbf{all} unspent OUTPUTS To on bitcoin network (this allows them to also verify whether inputs from incoming transactions satisfy condition(s) to spend referenced outputs) $\rightarrow$ do not have this functionality? query bitcoin network/ask full node client through API call (example in book has API call onstructed as an HTTP GET command to a specific URL, while response received through command-line HTTP client cURL). Information obtained: unspent amounts under ownership of specified address with reference to transaction that contains it).
+    \begin{itemize}
+        \item single unspent output preferred, otherwise "rummaging" occurs
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Creating the Outputs}
+\begin{itemize}
+    \item Output created in form of a script that encumbers output value with demand for signature for redemption (signature is a solution to script). Additional outputs in same transaction also sometimes made for change. Transaction fees incurred implicitly (in different between I/O) to help ensure transaction processed by network in timely fashion (transaction fee provides incentive for miners)
+\end{itemize}
+
+\subsubsection{Adding the Transaction to the Ledger}
+\textit{"...new blocks (once added to blockchain) increasingly trusted by network as more blocks added"}
+\break
+\break
+\textbf{Transmitting the Transaction}
+\begin{itemize}
+    \item Transaction contains within itself everything needed to process, so doesn't matter how or where it is transmitted to bitcoin network
+    \item Bitcoin network \textit{peer-to-peer} (each client connected to several other clients). A primary purpose of network is  propagate transactions and blocks to all clients
+\end{itemize}
+\noident\textbf{How it Propagates}
+\begin{itemize}
+    \item \textit{bitcoin node} anything that participates in network by speaking bitcoin protocol. Wallet can send transaction to any node over any time of connection (wired, Wifi, etc.). Not required to connect to sender/receiver directly or over same Wifi network because of propagation technique called \textit{flooding}
+\end{itemize}
+
+\noindent\textbf{Bob's View}
+\begin{itemize}
+    \item Bob's wallet identifies transaction (constructed by Alice's wallet) as incoming payment because contains output redeemable by Bob's keys
+    \item Bob's wallet can also independently verify that transaction is well formed (proper syntax, structure -- see all other consensus rules), uses previously unspent inputs (no double-spend), and contains sufficient transaction fees to be included in next block (can assume, with little risk, that transaction will shortly be included on blockchain and confirmed (next block or few blocks after)
+    \begin{itemize}
+        \item Can only spend BTC after confirmation (i.e. after put on blockchain). For small-value transactions, the risk of exchanging product/service for BTC prior to confirmation is usually lower than risk of delaying service
+    \end{itemize}
+\end{itemize}
+
+\subsection{Bitcoin Mining}
+\begin{itemize}
+    \item Higher compution to prove, lower computation to verify as proven (part of broader topic of \textit{Proof-of-Work} and \textit{computational trust}) + adjustable difficulty
+    \item Mining process serves two purposes: (1) provides security for bitcoin transactions by rejecting invalid transactions using bitcoin \textit{consensus rules} (2) created new bitcoin in each block (like "printing money")
+    \item Delicate balance between \textit{cost} (electricity and other costs of operation) and \textit{reward} (a new bitcoin + transaction fee -- only collected after block validated through rules of consensus (provides additional layer of security)) required to remove need for central authority
+    \item Algorithm for POW involves repeatedly hasing header of block and some random number with SHA256 cryptographic algorithm until a solution "matching predetermined pattern emerges" (i.e. a specified number of leading zeroes)
+    \item As number of miners increase and with intro of more advanced/powerful hardware (ex: ASICs), hashing power of network also increases $\rightarrow$ must increase target difficulty to keep confirmation rate at 10 minutes (avg). Use of mining pools can be used to help offset this exponential increase in hashing power and, by extension, difficulty
+\end{itemize}
+
+\subsection{Mining Transactions in Blocks}
+\begin{itemize}
+    \item Transaction received. Each node maintains a \textit{temporary pool} of unconfirmed transactions $\rightarrow$ miners add transactions to \textit{candidate block}, prioritized by highest transaction fees first (created block contains "fingerprint" of parent block). Each miner includes \texit{coinbase transaction} in own candidate block (first transaction), containing reward to his wallet (newly created bitcoin (same for all, decreases over time) + sum of transaction fees) $\rightarrow$ mining begins as soon as previous block received on network $\rightarrow$ solution to POW algorithm found, block broadcast, verified by nodes, and then added to blockchain (process takes 10 minutes, on average). Reward now spendable and divisible to pool based on amount of contributed work
+\end{itemize}
+
+\begin{tcolorbox}
+\begin{minipage}{0.2\linewidth}
+    \includegraphics[scale=0.6]{mbc2_0209.png}
+\end{minipage}\hfil
+\begin{minipage}{0.5\linewidth}
+\begin{itemize}
+    \item exponentially harder to reverse transaction (approx. 6 blocks/confirmations and transaction considered irrevocable), because enormous amount of computational power required to invalidate and recalculate six blocks (i.e. harder to fork and get network to start mining on your branch with increasing block depth)
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsection{Spending the Transaction}
+\begin{itemize}
+    \item Once in blockchain, transaction spendable. All nodes maintain local perspectives of blockchain that re-converge to a global perspective once block propagated and validated (the level of independence and decentralization each node has in maintaining blockchain depends on capacity of client (ex: full nodes vs. lightweight clients)). Regardless, once on the blockchain, client able to independently verify transaction as valid and spendable. Full-node clients can track source of funds through entire transaction chain. Lightweight clients verify transactions through Simplified Payment Verification by confirming that transaction is in blockchain and has several blocks mined after it.
+\end{itemize}
+\clearpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                          CHAPTER 03                           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Keys, Addresses}
+\begin{itemize}
+    \item Bitcoin based on \texit{cryptographic} techniques used to produce, for example, digital signatures (knowing without receiving), digital fingerprints (prove authenticity of data), etc. Encryption not an important part of bitcoin.
+\end{itemize}
+\subsection{Introduction}
+\begin{itemize}
+    \item Ownership of bitcoin done through:
+    \begin{itemize}
+        \item \textit{Digital keys}: enables ownership attestation and, more broadly, decentralized trust and control (cryptographic-proof security model based on fact that functions are one-way); exists as \textit{public/private key pair} (former like BA number, latter like pin number); on wallet not network, no bitcoin protocol required (no Internet)
+        \item \textit{Bitcoin addresses}: hash of the public key (most cases) (is the "digital fingerprint" of public key) (like beneficiary name on cheque). In most cases, generated from and corresponds to public key $\rightarrow$ abstraction allows for flexible destination address (company accounts, paying for bills, pay to cash) (ex: see pay to script hash)
+        \item \textit{Digital signatures (or witness)}: can only be generated by private key, used to spend funds and testify true ownership; In most cases, a valid digital signature required to be in blockchain
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Public Key Cryptography}
+\text{Aside: 384-bits deemed enough for T.S. documents in elliptic curve cryptography}
+
+\subsubsection{Private and Public Keys}
+\begin{tcolorbox}
+\begin{minipage}{0.4\linewidth}
+\centering
+    \includegraphics[scale=0.65]{mbc2_0401.png}
+    \captionsetup{justification=centering}
+    \captionof{figure}{cryptographically generated key-pair used to control bitcoin}
+\end{minipage}\hfil
+\begin{minipage}{0.6\linewidth}
+\begin{itemize}
+    \item Private key used to sign transactions and used to spend bitcoin. Public key used to receive funds
+    \item Mathematical relation between s.k. and p.k. allows use of s.k. to generate signatures on messages and allows transactions to be validated against p.k. w/o revealing s.k.
+    \item To spend, present digital signature and p.k. (digital signature different each time but from same s.k.) so ownership to spender confirmed and transaction validated on network
+    \item Wallets can store p.k./s.k. as key pair or just s.k. since p.k. derived from it
+    \item Asymmetric cryptography (public/private key pair) used to allow for digital signatures (s.k. applied to digital fingerprint of transaction to produce un-forgeable signature, however anyone with access to public key and digital signature can independently (again, going to the theme of decentralized) verify signature and hence transaction as valid)
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsubsection{Private Keys}
+\begin{itemize}
+    \item Picked at random (ex: toss coin 256 times to generate binary); control of s.k. $\implies$ control of funds, since purpose is to spend by signing (proves ownership). Thus, must keep secret and back up.
+\end{itemize}
+
+\noindent \textbf{Generating a Private Key from a Random Number}
+\begin{itemize}
+    \item Question: best way to produce 256 bits of entropy (or number from 1 to $2^{256}$)? (more precise: s.k. any number from 1 to n-1, n = 1.158x$10^{77}$ (slightly less than $2^{256}$), defined as the order of the elliptical curve used in bitcoin)
+    \item Answer: Use CSPRNG to produce string of 256 bits $\rightarrow$ feed into SHA256 algorithm to produce 256-bit number $\rightarrow$ check if less than n-1
+\end{itemize}
+
+\subsubsection{Public Keys}
+\textbf{Elliptical Curve Cryptography}
+\begin{tcolorbox}
+\begin{minipage}{0.3\linewidth}
+\centering
+    \includegraphics[scale=0.5]{mbc2_0402.png}
+    \captionsetup{justification=centering}
+    \captionof{figure}{function is asymmetric; $x$ approaches $p$}
+\end{minipage}\hfil
+\begin{minipage}{0.7\linewidth}
+\begin{itemize}
+    \item \textbf{Function}: $y^2 = (x^3 + 7)$ over finite field of prime order $p = 2^{256}-2^{32}-2^9-2^8-2^7-2^4-1 \approx 2^{256}$ (mathematics same as over real numbers)
+    \item \textbf{Elliptic Curve Math}:
+    \begin{itemize}
+        \item Three cases: (1) line through P1 and P2 -- must intersect third point P3 prime on curve; (2) P1 = P2 -- intersects second point P3; (3) P1 and P2 same x coordinate, opposite y coordinate -- vertical line
+        \item Operation -- $ADD$: $P3 = P1 + P2$
+        \begin{itemize}
+            \item In case (3), P3 is "point at infinity" and plays role of zero (ex: P1 + P3 = P1)
+            \item ADD operation associative, meaning (A+B)+C = A+(B+C)
+        \end{itemize}
+        \item Operation -- $MULTIPLY$: $k*P = P + P + P + ... + P$ (k times), where k is whole number and P is point on curve
+    \end{itemize}
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\noindent \textbf{Generating a Public Key}
+\begin{tcolorbox}
+\begin{minipage}{0.3\linewidth}
+\centering
+    \includegraphics[scale=0.5]{mbc2_0404.png}
+\end{minipage}\hfil
+\begin{minipage}{0.7\linewidth}
+\begin{itemize}
+    \item $K = k*G$: $K$ is public key, $k$ is randomly generated s.k., $G$ is generator point (same for everyone $\implies$ a s.k. multiplied by $G$ always results in same p.k.). $G$ predetermined (specified by secp256k1 standard)
+    \item Function is "trap door" fn (i.e. best chance at reverse operation (division) is brute force search) $\implies$ p.k. can be shared freely
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\subsection{Bitcoin Address}
+\textbf{1}J7mdg5rbQyUHENYdx39WVWK7fsLpEoXZy : (1) Public Key $\rightarrow$ (2) SHA256 $\rightarrow$ (3) RIPEMD160 $\rightarrow$ Public Key Hash (160 bits) $\rightarrow$ (4) Base58Check Encode with 0x00 version prefix $\rightarrow$ Bitcoin Address (Base58Check Encoded Public Key Hash)
+\begin{itemize}
+    \item Hashing algorithms used extensively in bitcoin: bitcoin addresses, script addreses, mining P.O.W. algorithm
+    \item A "good" hashing fn meets the following requirements: (1) Easy to compute, (2) Uniform distribution, (3) Collision resistant (must be unique), (4) Pre-image resistant, (5) Second pre-image resistant
+\end{itemize}
+
+\subsection{Base58 and Base58Check Encoding}
+\textbf{Base58 alphabet:} 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
+\begin{itemize}
+    \item Base58 a text-based binary encoding format that offers balance between compact representation, readability, and error detection and prevention. Is a subset of Base64 (no '0', 'O', 'l', 'I', '+', and '/')
+\end{itemize}
+\textbf{Base58Check Encoding:} Payload $\rightarrow$ (1) add version prefix $\rightarrow$ Version|Payload $\rightarrow$ (2) Hash (version prefix + payload) $\rightarrow$ SHA256 $\rightarrow$ SHA256 $\rightarrow$ (3) add checksum (first 4 bytes) of 32 bytes $\rightarrow$ Version|Payload|Checksum $\rightarrow$ (4) Base58 encode $\rightarrow$ Base58Check Encoded Paylaod
+\begin{itemize}
+    \item Base58Check adds extra security by being able to better detect and prevent transcription and typing erros. Decoding software calculates checksum of data and compares with checksum included (this works because checksum derived from hash of data)(match required, otherwise loss of funds)
+    \item Version byte helps humans to identify type of data:
+\end{itemize}
+\begin{table}[]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Type} & \textbf{Version Prefix (hex)} & \textbf{Base58 Result Prefix} \\ \hline
+Bitcoin address & 0x00 & 1 \\ \hline
+Pay-to-script hash address & 0x05 & 3 \\ \hline
+Bitcoin testnet address & 0x6F & m or n \\ \hline
+Private key WIF & 0x80 & 5, K, or L \\ \hline
+BIP-38 encrypted private key & 0x0142 & 6P \\ \hline
+BIP-38 extended public key & 0x0488B21E & xpub \\ \hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Key Formats}
+Private Key encoding formats (+ Hex compressed)
+
+\begin{table}[]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Type} & \textbf{Prefix} & \textbf{Description} \\ \hline
+Raw & None & 32 bytes (256 bits) \\ \hline
+Hex & None & 64 hexadecimal digits \\ \hline
+WIF & 5 & Base58Check encoding: Base58 w/ version prefix of 128 and 32 bit checksum \\ \hline
+WIF-compressed & K or L & As above, w/ added suffix 0x01 before encoding \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item (1) and (2) rarely shown to user. Used internally in software. (3) and (4) used to import/export between wallets and for QR code
+    \item Important point: all representations of same 256-bit number
+    \item In Bitcoin Explorer, can use command: "wif-to-ec" to show that WIF and WIF-compressed show same private key
+\end{itemize}
+
+Decode from Base58Check
+\begin{itemize}
+    \item In Bitcoin Explorer, use "base58check-decode" command (in example from book, version prefix in WIF format. the suffix 01 in payload signals that derived public ket is to be compressed)
+\end{itemize}
+Encode from Hex to Base58Check (opposite of previous)
+\begin{itemize}
+    \item Use "base58check-encode" and provide hex private key. Resulting Base58Check encoded key has prefix "K" to indicate that "compressed" private key is to be used to produce compressed public key
+\end{itemize}
+Public Key formats
+\begin{itemize}
+    \item Recall: p.k. a point (x,y,) on elliptic curve: x equals 256-bit number, y equals 256-bit number $\rightarrow$ K equals \textbf{04 (uncompressed) or 02 or 03 (compressed (not plus 520)} plus 520-bit number (130 hex)(x?y)
+    \item Like with private keys, many encoding formats available
+\end{itemize}
+Compressed public keys
+
+\begin{minipage}{0.3\linewidth}
+    \includegraphics[scale=1.0]{mbc2_0407.png} 
+    \captionof{figure}{public key compression}
+\end{minipage}\hfil
+\begin{minipage}{0.35\linewidth}
+\begin{itemize}
+    \item From 520 bits (prefix plus x plus y) to 520-256 equals 264 bits (66 hex) $\rightarrow$ approx 50 percent reduction $\implies$ reduces size of transactions (and hence blockchain) and conserve disk space on nodes
+    \item Calculations on elliptic w/ binary arithmetic on finite field of prime order p produces either even or odd (plus or minus) y values due to y squared $\rightarrow$ this works because of symmetry about x-axis
+\end{itemize}
+\end{minipage}
+\begin{itemize}
+    \item Problem: single private key can produce two different bitcoin addresses (compressed or uncompressed)(however, private keys identical for both addresses), so how do you account for clients that do not support compressed public keys? For example, when importing private keys frpm one wallet application toa ntoher, becuase the new wallet needs to scan blockchain to find transactions corresponding to improted key, which address to scan for? (both valid but different) $\rightarrow$ when exporting, WIF used to represent s.k. imp,ented differntly to indicate whether comes from older wallet (uncompressed p.k. and hence uncompressed address) or newer wallet (compressed p.k. and hence com. address (see next section))
+\end{itemize}
+\textbf{Compressed private keys}
+\begin{itemize}
+    \item Irony: when s.k. exported as WIF-compressed, it is 1-byte longer (plus 01 suffix for hex compressed). Private key "compressed" signifies that it belongs to newer wallet abd really means "private key from which only compressed p.k. should be derived"
+    \begin{itemize}
+        \item addition of one-byte suffix results in first character of Base58 encoding to change from 5 to K or L
+    \end{itemize}
+    \item With goal of signalling to wallet importing s.k. of whether it must search blockchain for compressed or uncompressed public keys and addresses, newer wallets only ever export as WIF-compressed (thus resulting in compressed public keys and addresses) and older wallets only ever export as WIF (thus resulting in uncompressed public keys and addresses)
+\end{itemize}
+\subsection{Advanced Keys and Addresses}
+\subsubsection{Encrypted Private Keys (standardized by BIP-38)(section uses bitaddress.org to exemplify}
+\begin{itemize}
+    \item Goal: balance between \textbf{confidentiality} and \textbf{availability}, Solution: BIP-38 encrypted private keys (standard of encryption: AES (see block cyphering), established by NIST)
+    \item Technique: s.k. (usually WIF (prefix less than or equal to) -encoded) and passphrase as input $\rightarrow$ Base58Check-encoded encrypted s.k. w/ prefix 6P as output. Passphrase now required to decrypt and hence use/display s.k. (many wallets now recognize format and have automatic prompts)
+    \item BIP38 encrypted s.k. plus paper wallets for extra security
+\end{itemize}
+\subsubsection{Pay-to-Script Hash (P2SH) and Multisig Addresses (standardized by BIP-16)}
+\begin{itemize}
+    \item Recall: traditional bitcoin addresses have prefix "1", and designate an owner of a public key (P2PKH?). When bitcoin sent to address, funds accessed and able to be spent through presentation of s.k. signature and p.k. hash to confirm ownership
+    \item Now: pay-to-script hash (P2SH) addresses have prefix "3", and designate a hash of a script. Purpose: move the responsibility for supplying the conditions to redeem a transaction from sender of funds to redeemer 
+    \item Encoding: public key hash (NO) script has (YES) equals RIPEMD160(SHA256(public key (NO) script (YES))
+    \begin{itemize}
+        \item script defines who can spend a transaction output
+        \item script has encoded in Base58Check w/ version prefix '5', which results in an encoded address starting with a '3'
+        \item In Bitcoin Explorer, can use following commands to derive P2SH address: "script-encode" $\rightarrow$ "sha256" $\rightarrow$ "ripemd160" $\rightarrow$ "base58check-encode"
+    \end{itemize}
+\end{itemize}
+\textbf{Multisignature addresses and P2SH (most common, but not only, implementation of P2SH function)}
+\begin{itemize}
+    \item script requires more than one signature to prove ownership and therefore spend funds
+    \begin{itemize}
+        \item \textbf{M-of-N multisig:} M signatures (called threshold) required from total of N keys, M less than or equal to N (ex: Bob the coffee shop owner, 1-of-2 signatures (1 key for him, 1 for wife) $\rightarrow$ "joint account")
+    \end{itemize}
+\end{itemize}
+\clearpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                          CHAPTER 04                           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Wallets}
+\begin{itemize}
+    \item Wallet definition: application and primary UI, controls access to user money, manages keys and addresses, tracks balance, creates and signs transactions (high-level); data structure used to store and manage user's keys (low level (programming)) -- focus of chapter
+\end{itemize}
+\subsection{Wallet Technology Overview}
+\begin{itemize}
+    \item bitcoin wallets contain only keys, not bitcoin. Bitcoin recorded in network blockchain in the form of transaction outputs (often noted as vout or txout). User control of bitcoin done by signing transactions with keys, thereby proving ownership of transaction outputs.
+    \item Primary classification:
+    \begin{itemize}
+        \item Nondeterministic (JBOK) (ex: Bitcoin Core (100))
+        \item Deterministic
+    \end{itemize}
+\end{itemize}
+\subsubsection{Nondeterminstic (Random) Wallet}
+\begin{itemize}
+    \item Description: each s.k. indepedantly generated from random # (no relation). Bitcoin Core started with 100, used each key once, generated more as needed
+    \begin{itemize}
+        \item Adhering to pricniple of avoiding address reuse (privacy through (lack of ) association) cumbersome if you want to back up every key
+    \end{itemize}
+    \includegraphics[scale=0.5]{mbc2_0501.png}
+\end{itemize}
+\subsubsection{Deterministic (Seeded) Wallet}
+\begin{itemize}
+    \item seed is sufficient to derive all keys $\rightarrow$ one input required $\rightarrow$ easy migration of keys between wallet implementation (import/export seed only)
+    \item HD wallet most advanced form
+\end{itemize}
+\includegraphics[scale=0.25]{mbc2_0502.png}
+\subsubsection{HD Wallets (standardized by BIP-32/BIP-44)}
+\begin{itemize}
+    \item Advantages: create sequence of pks w/o access to sk (can use on insecure server, use wallet for receive only capacity, issuance a different public key for each transaction. p.ks do not need to be preloaded or derived in advance.
+    \item tree structure can be used to represent additional organizational meaning (ex: specific branch of subkeys to receive incoming payments and different branch to receive change from outgoing payments, corporate settings (branches to apartments, subsidiaries, specific fns, or accounting categories)
+\end{itemize}
+\includegraphics[scale=0.5]{mbc2_0503.png}
+\subsubsection{Seeds and Mnemonic Codes (standardized by BIP-39)}
+\begin{itemize}
+    \item representing seeds from mnemonics makes easier to transcribe, record/read without error, export and import to another wallet for backup and recovery (mnemonics now inter-operable across most wallets)
+    \begin{itemize}
+        \item 0C1E24E5917779D297E14D45F14E1A1A $\rightarrow$ army van defense carry jealous true garbage clan echo media make cruch
+    \end{itemize}
+\end{itemize}
+\subsubsection{Wallet Best Practices}
+\begin{itemize}
+    \item common standard for bitcoin wallets to make them inter-operable, easy to use, secure, and flexible: mnemonic code word (BIP-39), HD wallets (BIP-32), multipurpose HD wallet structure (BIP-43), multicurrency and multiaccount wallets (BIP-44)
+    \begin{itemize}
+        \item Bread wallet, Copay, Multibit HD, Mycelium; hardware wallets: keepkey, Ledger, Trezor
+    \end{itemize}
+\end{itemize}
+\subsubsection{Using a Bitcoin Wallet}
+\begin{itemize}
+    \item Gabriel and his Trezor wallet (USB device with two buttons, that stores keys (in form of HD wallet), that signs transactions. All industry standards (above) met. When first used, mnemonic seed generated from built in random number generator (backup created througb paper backup, recovery now possible (both hardware and software)). Note, mnemonic in form of numbered spaces, so sequence imporant (12 or 24 common). For first implementation of web store, one bitcoin address used for all orders by all customers (has drawbacks, can be improved with HD wallet)
+\end{itemize}
+\subsection{Wallet Technology Details}
+\subsubsection{Mnemonic Code Words (BIP-39)}
+\begin{itemize}
+    \item Definition: word sequency used to encode a random number seed to derive wallet through its seeds
+    \begin{itemize}
+        \item Aside: brainwallets does not equal mnemonic words $\rightarrow$ brainwallets consist of words chosen by user (not secure (poor randomness))
+        \item Though BIP-39 industry standard, Electrum implements different mnemonic code standard (predates)
+    \end{itemize}
+\end{itemize}
+Generating mnemonic words
+\newline
+\includegraphics[scale=0.2]{mbc2_0506.png}
+\begin{table}[]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{1}{|l|}{\textbf{Entropy (bits)}} & \multicolumn{1}{l|}{\textbf{Checksum (bits)}} & \multicolumn{1}{l|}{\textbf{Entropy + checksum (bits)}} & \multicolumn{1}{l|}{\textbf{Mnemonic length (words)}} \\ \hline
+128 & 4 & 132 & 12 \\ \hline
+160 & 5 & 165 & 15 \\ \hline
+192 & 6 & 198 & 18 \\ \hline
+224 & 7 & 231 & 21 \\ \hline
+286 & 8 & 264 & 24 \\ \hline
+\end{tabular}
+\end{table}
+From mnemonic to seed
+\newline
+\includegraphics[scale=0.3]{mbc2_0507.png}
+Optional passphrase in BIP39
+\begin{itemize}
+    \item no passphrase versus passphrase leads to a different seed. For given mnemonic, every possible passphrase leads to a different seed $\implies$ no "wrong passphrase"
+    \item Passphrase features: (1) a second factor (protects against mnemonic backups), (2) duress wallets for distraction
+    \item Risk of loss: (1) wallet owner dead $\rightarrow$ passphrase lost $\rightarrow$ seed useless and wallet funds lost forever, (2) backup passphrase in same place as seed $\rightarrow$ purpose of second factor defeated
+\end{itemize}
+Working with mnemonic codes
+\begin{itemize}
+    \item BIP-39 implemented as a library in many programming languages: python-menomic for Python, bitcoinj-s/bip39 for JavaScript, libbitcoin/menominc for C++
+    \item BIP-39 implemented as a standalone webpage (offline (in a browser) or online: https://iancoleman.github.io/bip39
+\end{itemize}
+\subsubsection{Creating an HD wallet from the seed}
+\includegraphics[scale=0.5]{mbc2_0509.png}
+\newline
+Private child key derivation (CKD function)
+\newline
+\includegraphics[scale=0.5]{mbc2_0510.png}
+\newline
+Using derived child keys
+\begin{itemize}
+    \item child sk indistinguishable from nondeterministic keys (fact that part of key and sequence invisible outisde HD wallet)
+    \item from above child sk $\rightarrow$(???) parent sk, cant know siblings from one child $\rightarrow$ need parent and parent chain code to derive all children, and then child equivalent for grandchildren)
+    \begin{itemize}
+        \item Use of child sk $\rightarrow$ derive pk and bitcoin address to sign transactions to spend anything paid to that address
+    \end{itemize}
+\end{itemize}
+Extended keys:
+\begin{itemize}
+    \item An extended key ("extensible key") consists of a private or public key and chain code (the essentials)(stored and represented as concatenation of 256-bit key and 256-bit chain code into 512-bit sequence)
+    \begin{itemize}
+        \item extended sk can create complete branch (child sk and pk), extended pk 
+        \begin{itemize}
+            \item give extended key $\rightarrow$ give access to while branch 
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+Public child key derivation
+\newline
+\includegraphics[scale=0.5]{mbc2_0511.png}
+\newline
+Application: very secure public key-only deployments (server has copy of epk and no sks, able to produce infinite number of pks and bitcoin addresses to spend money to, esk stored on more secure server to derive all corresponding sks to sign transactions and spend money)
+\begin{itemize}
+    \item ex: ecommerce, cold storage, or hardware wallet usage for esk (epk can be online w/o risk (to sign and spend, can use offline signing bitcoin client or directly on hardware device (ex:Trezor))
+\end{itemize}
+\subsubsection{Using an extended public key on a web store}
+\begin{itemize}
+    \item Gabriel $\rightarrow$ one address for all orders (overwhelming and lack of security) $\rightarrow$ export on xpub from Trezor to website via Mycelium Gear (open-source webstore plugin) to device. Unique address for every order (esk stays on Trezor)
+\end{itemize}
 \end{document}
