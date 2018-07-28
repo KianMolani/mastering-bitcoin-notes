@@ -1,5 +1,13 @@
 \documentclass[english, 11pt]{article}
 \usepackage{notes}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.56in]{geometry}
+\usepackage{mathtools}
+\usepackage{graphicx,dingbat}
+\usepackage{tcolorbox}
+\usepackage{lipsum}
+\usepackage{caption}
+\usepackage{subcaption}
 
 \newcommand{\thisbookdescription}{Programming the Open Blockchain}
 \newcommand{\thisbook}{Mastering Bitcoin}
@@ -674,5 +682,644 @@ Application: very secure public key-only deployments (server has copy of epk and
 \subsubsection{Using an extended public key on a web store}
 \begin{itemize}
     \item Gabriel $\rightarrow$ one address for all orders (overwhelming and lack of security) $\rightarrow$ export on xpub from Trezor to website via Mycelium Gear (open-source webstore plugin) to device. Unique address for every order (esk stays on Trezor)
+\end{itemize}
+\section{The Bitcoin Network}
+
+\subsection{Peer-to-Peer Network Architecture}
+\begin{itemize}
+    \item Characteristics: built on top of Internet, equality and shared burden, mesh network with flat topology (
+    \item to access, must run protocol
+\end{itemize}
+
+
+\subsection{Node Types and Roles}
+\begin{minipage}{0.3\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0801.png} 
+    \captionof{figure}{full node}
+\end{minipage}\hfil
+\begin{minipage}{0.35\linewidth}
+\begin{itemize}
+    \item Routing function common to all (validation of transactions and blocks and discover + maintenance of connections to peers)
+\end{itemize}
+\end{minipage}
+\begin{itemize}
+    \item Full nodes: maintain complete and update copy of blockchain $\rightarrow$ authoritative and anonymous verification of any transaction w/o external reference
+    \item Light-weight nodes: contain subset of blockchain, verify transactions through SPV method
+    Mining nodes: run specialized hardware for POW algorithm. Can be full or lightweight node (latter depends on pool server to maintain full node)
+    Wallets: can be part of full node (most btc desktop clients) or lightweight
+    \item In addition to P2P protocol, specialized mining pool protocols and lightweight-client access protocol
+\end{itemize}
+
+\subsection{The Extended Bitcoin Network}
+
+\begin{figure}[h]
+\centering
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0802.png}
+  \captionof{figure}{Different types of nodes on the extended bitcoin network}
+\end{minipage}%
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0803.png}
+  \captionof{figure}{The extended bitcoin network showing various node types, gateways, and protocols}
+\end{minipage}
+\end{figure}
+
+\begin{itemize}
+    \item Main bitcoin network runs bitcoin P2P protocol through various versions of bitcoin reference client (Bitcoin Core) or other implementations (ex: Bitcoin Classic, Bitcoin Unlimited, BitcoinJ, Libbitcoin, btcd, and bcoin) split between listening functions, mining, network edge routing (ex: exchanges, wallets, block explorers, merchant payment processing), etc.
+    \item Extended: bitcoin p2p protocol + specialized protocols.  Attached to the main bitcoin P2P network are a number of pool servers and protocol gateways that connect nodes running other protocols. These other protocol nodes are mostly pool mining nodes (see [mining]) and lightweight wallet clients, which do not carry a full copy of the blockchain.
+\end{itemize}
+
+\subsection{Bitcoin Relay Network}
+\begin{itemize}
+    \item Problem: Bitcoin P2P network exhibits too high of network latency for miners (competition time sensitive, network latency in propagating winning block to start of next round directly related to profit margins)
+    \item Solution: Bitcoin Relay Network (network that minimizes latency and quickly synchronize blocks between miners)(consists special nodes hosted on Amazon Web Services infratstructure to connect miners and mining pools)
+    \item BRN replaces by Fast Internet Bitcoin Relay Engine (FIBRE) (UDP-based relay network)(implements compact block optimization to reduce size of block (i.e. reduce data transmitted) and network latency))
+    \item Falcon (proposal): "cut-through-routing" instead of "store-and-forward"
+    \item Relay networks are not replacements for bitcoin’s P2P network. Instead they are overlay networks that provide additional connectivity between nodes with specialized needs. Like freeways are not replacements for rural roads, but rather shortcuts between two points with heavy traffic, you still need small roads to connect to the freeways.
+\end{itemize}
+
+\subsection{Network Discovery}
+\begin{itemize}
+    \item Connecting to known peer: (1) discover at least one existing node and connect to it (random selection -- BTC network topology not geographically defined) $\rightarrow$ (2) establish TCP connection (usually port 8333) $\rightarrow$  (3) initialize "handshake" by transmitting \textbf{version} message containing: \textbf{nVersion}, \textbf{nLocalServices}, \textbf{nTime}, \textbf{addrYou}, \textbf{addrMe}, \textbf{subver}, \textbf{BestHeight} $\rightarrow$ (4) peer looks at nVersion. If compatible, sends \textbf{verack}
+    \item Finding peers (Method 1): query DNS using DNS seeds (BCC contains 5) for list of IP addresses of BTC nodes (returns static list of stable listening node addresses or random subset of list of node addresses from crawler or long-running BTC node (custom implementation of BIND)). DNS seeds have diverse implementations and ownership $\implies$ high reliability for initial bootstrapping process. 
+    \item Finding peers (Method 2): Use command-line argument -seednode to connect to one node, using it as seed. Seed node introduces to new peers, afterwhich client disconnects from seed node
+    \item After one (or more) connections established (part of address propagation and discovery): (1) Send addr message to peer $\rightarrow$ peer fwds addr to its neighbours. (2) send getaddr request to peer $\rightarrow$ peer returns addr of its peers
+    \item Only handful of nodes required to establish diverse paths (otherwise wasteful and unnecessary), though too little connections unreliable (nodes come and go all the time). As seen above, only one connection needed to bootstrap, afterwhich a node will remember most recent successful peer connections (quick reestablishment after reboot) (if none of former peers respond to connection request, the node can use the seed nodes to bootstrap again)\
+    \item If there is no traffic on a connection, nodes will periodically send a message to maintain the connection. If a node has not communicated on a connection for more than 90 minutes, it is assumed to be disconnected and a new peer will be sought. Thus, the network dynamically adjusts to transient nodes and network problems, and can organically grow and shrink as needed without any central control.
+    \item Aside: getpeerinfo and -connect=<IPAddress> commands in BCC
+\end{itemize}
+
+\subsection{Full Nodes}
+\begin{itemize}
+    \item full nodes actually full blockchain nodes (early on, all nodes were (BCC is currently)) -- in dependant and authorative maintenance of blockchain (build and verification) $\implies$ verification of any transaction w/o any reliance or trust on other nodes ("full bitcoin experience"). Relies on network to receive updates about new blocks, which it then verifies and incorporates into its local copy of blockchain
+    \item Price of complete independance and freedom from central authority $\rightarrow$ requires more than 100 GB of persistent storage (disk space) to store full blockchain. It also takes two to three days to sync to the network
+    \item Aside: more than 75 percent of full nodes run reference implementation (BCC also called Satoshi client), though alternative implementations of full blockchain bitcoin clients exist
+\end{itemize}
+
+\subsection{Exchanging "Inventory"}
+\begin{minipage}{0.3\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0806.png} 
+    \captionof{figure}{Full-node first action (after connections to peers) -- Node synchronization of blockchain -- happens any time any node goes offline for any period of time}
+\end{minipage}\hfil
+\begin{minipage}{0.65\linewidth}
+\begin{itemize}
+    \item Brand-new nodes START w/ genesis block (statically embedded in client software)
+    \item (1) getblocks message contains hash (fingerprint) of the top block on their local blockchain (who's longer?)(can identify which blocks the other node needs in order to "catch up") $\rightarrow$ (2) identify the first 500 blocks to share and transmit their hashes (inv) $\rightarrow$ (3) node missing blocks will retrieve th rough series of getdata messages The node missing these blocks will then retrieve them, by issuing a series of getdata messages (full block data) and identifying the requested blocks using the hashes from the inv message (here, load spread across peers. Note: The node keeps track of how many blocks are "in transit" per peer connection, meaning blocks that it has requested but not received, checking that it does not exceed a limit ($MAX_BLOCKS_IN_TRANSIT_PER_PEER$). This way, if it needs a lot of blocks, it will only request new ones as previous requests are fulfilled, allowing the peers to control the pace of updates and not overwhelm the network).
+\end{itemize}
+\end{minipage}
+
+\subsection{Simplified Payment Verification (SPV) Nodes}
+\begin{itemize}
+    \item Most common for space- and power- constrained devices
+    \item Only block header, not contained transactions, downloaded $\implies$ chain of blocks 1000 times smaller (size in kB) AND $\implies$ cannot construct full UTXO set. Verifying that transaction not double-spend done through proof-by-proxy using block \textit{depth}, not height (full nodes construct full database of transactions, and hence full database of UTXO set. Thus, they can validate any transaction directly and confirm UTXO remains unspent) (see tourist analogy) ---- "A full blockchain node verifies a transaction by checking the entire chain of thousands of blocks below it in order to guarantee that the UTXO is not spent, whereas an SPV node checks how deep the block is buried by a handful of blocks above it."
+    \item Existence of transaction in block proven through merkle path (establishing a link between the transaction and the block that contains it) proof and by validating the POW in the chain of blocks BUT cannot verify that a transaction, such as double spend of the same UTXO, doesnt exist $\implies$ vulnerability to denial-of-service or double-spend attacks $\rightarrow$ connect randomly to several nodes to increase probability that in contact with at least one honest node $\implies$ vulnerable to partioning attacks or Sybil attacks (usually secure enough -- balance between resource needs, practicality, and security)
+    \item SPV node synchronization of block headers: process same as full nodes use to retrieve full blocks (see above), except SPV nodes use a getheaders message instead of getblocks (returns headers). The responding peer will send up to 2,000 block headers using a single headers message. SPV nodes also set a filter on the connection to peers, to filter the stream of future blocks and transactions sent by the peers. Any transactions of interest are retrieved using a getdata request. The peer generates a tx message containing the transactions, in response.
+\end{itemize}
+
+\section{Bloom Filters}
+\begin{itemize}
+    \item Problem: request of specific data creates privacy risk (ex: association of bitcoin addresses to user's wallet). Solution: Bloom filters
+    \item Bloom filters (probabilistic search filter) allow SPV node to specify a search pattern for transactions (w/o revealing exactly which addresses, keys, or transactions they are searching for) that can be tuned towards precision or privacy 
+\end{itemize}
+
+\subsection{How Bloom Filters Work}
+
+\begin{figure}[h]
+\centering
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0808.png}
+  \captionof{figure}{Bloom filter w/ 16 (N)-bit field and 3 (M) hash functions (deterministic)}
+\end{minipage}%
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0809.png}
+  \captionof{figure}{Adding pattern 'A' to bloom filter}
+\end{minipage}
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0810.png}
+  \captionof{figure}{Adding pattern 'B' to bloom filter. Overlapping bits decreases accuracy of filter $\implies$ bloom filter probabilistic data structure (less accurate as more patterns added). The accuracy depends on the number of patterns added versus the size of the bit array (N) and number of hash functions (M).}
+\end{minipage}
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0811.png}
+  \captionof{figure}{}
+\end{minipage}
+\begin{minipage}{.3\textwidth}
+  \centering
+  \includegraphics[scale=0.4]{mbc2_0812.png}
+  \captionof{figure}{}
+\end{minipage}
+\end{figure}
+
+\subsection{How SPV Nodes Use Bloom Filters}
+\begin{itemize}
+    \item SPV node makes list of all addresses, keys, and hashes it is interested in by extracting the public key hash and script has and transaction IDs from any UTXO controlled by its wallet $\rightarrow$ add each to bloom filter $\rightarrow$ send filterload message to peer, containing the bloom filter $\rightarrow$ bloom filter checked against each incoming transaction. Full node checks several parts of transaction against the bloom filter, looking for a match including: the transaction ID, the data components from the locking scripts of each of the transaction outputs (every key and hash in the script), each of the transaction inputs, and each of the input signature data components (or witness scripts). By checking against all these components, bloom filters can be used to match public key hashes, scripts, OP_RETURN values, public keys in signatures, or any future component of a smart contract or complex script.
+\end{itemize}
+
+\subsection{SPV Nodes and Privacy}
+\begin{itemize}
+    \item However, even with bloom filters, an adversary monitoring the traffic of an SPV client or connected to it directly as a node in the P2P network can collect enough information over time to learn the addresses in the wallet of the SPV client.
+\end{itemize}
+
+\section{Encrypted and Authenticated Connections}
+\begin{itemize}
+    \item network communications of a bitcoin node in original implementation NOT encrypted -- not an issue for full nodes, major privacy issue for SPV nodes. Solution: encrypted communication through: Tor Transport and P2P Authentication and Encryption
+\end{itemize}
+
+\subsection{Tor Transport}
+\begin{itemize}
+    \item Tor (the Onion Routing network) is network that offers encryption and encapsulation of data through randomized network paths that offer anonymity, untraceability and privacy. See also Tor hidden services offered through Bitcoin Core
+\end{itemize}
+
+\subsection{Peer-to-Peer Authentication and Encryption (BIP-150/BIP-151)}
+\begin{itemize}
+    \item BIP-151 enables negotiated encryption for all communications between two nodes that support BIP-151. BIP-150 offers optional peer authentication that allows nodes to authenticate each other’s identity using ECDSA and private keys. BIP-150 requires that prior to authentication the two nodes have established encrypted communications as per BIP-151.
+    \item Additionally, authentication can be used to create networks of trusted bitcoin nodes and prevent Man-in-the-Middle attacks. Finally, P2P encryption, if deployed broadly, would strengthen the resistance of bitcoin to traffic analysis and privacy-eroding surveillance, especially in totalitarian countries where internet use is heavily controlled and monitored.
+\end{itemize}
+
+\section{Transaction Pools}
+\begin{itemize}
+    \item Almost every node maintains a memory pool/mempool/transaction pool (received, verified, relayed but not put on blockchain)
+    \item Some nodes also maintain orphan pool (missing parent referenced in input, when a transaction is added to the transaction pool, the orphan pool is checked for any orphans that reference this transaction’s outputs (its children) $\rightarrow$ validated then added to transaction pool). In light of the newly added transaction, which is no longer an orphan, the process is repeated recursively looking for any further descendants, until no more descendants are found. Through this process, the arrival of a parent transaction triggers a cascade reconstruction of an entire chain of interdependent transactions by re-uniting the orphans with their parents all the way down the chain.
+\end{itemize}
+
+\section{The Blockchain}
+
+\subsection{Introduction}
+
+\subsection{Structure of a Block}
+\begin{itemize}
+    \item A block is a container data structure
+    \item Aside: for perspective, average transaction at least 400 bytes, and average block contains more than 1900 transactions
+\end{itemize}
+
+\begin{table}[htbp]
+%\centering
+%\caption{My caption}
+%\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Size}} & \multicolumn{1}{c|}{\textbf{Field}} & \multicolumn{1}{c|}{\textbf{Description}} \\ \hline
+4 bytes & Block Size & The size of the block, in bytes, following this field \\ \hline
+80 bytes & Block Header & Several fields form the block header \\ \hline
+1-9 bytes (VarInt) & Transaction Counter & How many transactions follow \\ \hline
+Variable & Transactions & The transactions recorded in this block \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Block Header}
+\begin{itemize}
+    \item Contains three sets of metadata: previous block hash, difficulty and timestamp and nonce (relates to mining competition), and the merkle tree root
+\end{itemize}
+
+\begin{table}[htbp]
+%\centering
+%\caption{My caption}
+%\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Size}} & \multicolumn{1}{c|}{\textbf{Field}} & \multicolumn{1}{c|}{\textbf{Description}} \\ \hline
+4 bytes & Version & A version number to track software/protocol upgrades \\ \hline
+32 bytes & Previous Block Hash & A reference to the hash of the previous (parent) block in the chain \\ \hline
+32 bytes & Merkle Root & A hash of the root of the merkle tree of this block’s transactions \\ \hline
+4 bytes & Timestamp & The approximate creation time of this block (seconds from Unix Epoch) \\ \hline
+4 bytes & Difficulty Target & The Proof-of-Work algorithm difficulty target for this block \\ \hline
+4 bytes & Nonce & A counter used for the Proof-of-Work algorithm \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Block Identifiers: Block Header Hash and Block Height}
+\begin{itemize}
+    \item Primary identifier: block \textit{header} cryptographic hash (double-SHA256) (32 bytes) (a digital fingerprint (one-way, unique, unambiguous, can be independently derived by anyone))
+    \item Secondary identifier: block height (block height 0 is genesis block) (not unique identifier (specific and invariant, but see forking)
+    \item Neither block header hash or block height is, at any point, stored within the block. They are instead computed/dynamically identified when received by each node. Can be stored as part of block's metadata through indexed database table for faster retrieval of blocks from disk
+\end{itemize}
+
+\subsection{The Genesis Block}
+\begin{itemize}
+    \item Statistically encoded within the bitcoin client software $\implies$ common ancestor for ALL blocks in blockchain, cannot be altered, every node (new nodes incl.) contain it within their local copies of blockchain (so genesis block serves as "secure" starting point)
+\end{itemize}
+
+\subsection{Linking Blocks in the Blockchain}
+\begin{itemize}
+    \item As (full)node receives incoming blocks, first validates block, then links to existing blockchain using the "previous block hash" in block header (Blocks linked in a chain by reference to the previous block header hash) (child-parent relationship)
+\end{itemize}
+
+\subsection{Merkle Trees}
+
+\begin{itemize}
+    \item Merkle trees (or binary hash trees) are data structures (binary trees containing cryptographic hashes (double-SHA256) that provide an efficient summary of large sets of data (in this case, all the transactions in a block). Used by SPV nodes to verify that a transaction is included in a block
+\end{itemize}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0902.png}
+    \captionof{figure}{Merkle tree construction}
+    \label{fig:fig1}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Bottom-up construction (parent-children). Note: transactions not ever included in merkle tree. Although concatenation occurs to produce 64 bytes from 32 bytes, after hashing, every leaf node contains 32 bytes (incl. root). Recall: Only root stored in block header, since provides summary of all transactions
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_0903.png}
+    \captionof{figure}{Creating a balanced tree}
+    \label{fig:fig2}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Because merkle tree is a binary tree, it needs an even number of leaf nodes, meaning that if there is an odd number of transactions, last transaction hash will be duplicated to create an even number of leaf nodes, producing what's called a \textbf{balanced tree}
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.65]{mbc2_0905.png}
+    \captionof{figure}{A merkle path or authentication path used to prove the inclusion of a data element}
+    \label{fig:fig2}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item For a transaction K (or, more appropriately, its transaction hash, and by consequence K?), merkle path is only four 32-byte hashes long (128 bytes total). For any merkle tree, proving requires at most 2*log~2~(N) calculations. Here, need to only produce log~2~(N) 32-byte hashes for proof.
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{table}[H]
+\centering
+\caption{Merkle tree efficiency (effect more pronounced as number of transactions increases, because the base-2 logarithm of the number of transactions increases much more slowly)}
+\label{my-label}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Number of transaction}} & \multicolumn{1}{c|}{\textbf{Approx. size of block}} & \multicolumn{1}{c|}{\textbf{Path size (hashes)}} & \multicolumn{1}{c|}{\textbf{Path size (bytes)}} \\ \hline
+16 transactions & 4 kilobytes & 4 hashes & 128 bytes \\ \hline
+512 transactions & 128 kilobytes & 9 hashes & 288 bytes \\ \hline
+2048 transactions & 512 kilobytes & 11 hashes & 352 bytes \\ \hline
+65,535 transactions & 16 megabytes & 16 hashes & 512 bytes \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Merkle Trees and Simplified Payment Verification (SPV)}
+\begin{itemize}
+    \item Example: SPV node interested in incoming payment to an address contained in its wallet $\rightarrow$ SPV node establishes bloom filter on its connection to peers $\rightarrow$ when peer identifies a transaction that matches bloom filter, it sends that block using a merkleblock message (contains block header as well as a merkle path that links the transaction of interest to the merkle root in the block) $\rightarrow$ SPV node uses merkle path (and root contained in block header) to verify that transaction is included in the block. SPV node also uses the block header to link the block to the rest of the blockchain. The combination of these two links, between the transaction and blocl, and between the block and blockchain, proves that the transaction is recorded in the blockchain.
+\end{itemize}
+
+\subsection{Bitcoin’s Test Blockchains}
+\noindent Four bitcoin blockchains: \textit{mainnet}, \textit{testnet}, \textit{segnet}, and \textit{regtest}
+\begin{itemize}
+    \item \textit{mainnet}: the "main" bitcoin blockchain, created by Satoshi Nakamoto on January 3rd, 2009, containing the genesis block discussed earlier
+    \item \textit{testnet} ... Bitcoin’s Testing Playground: test blockchain, network, and currency (testnet coins) used for testing purposes. Possesses all features of mainnet except for two differences: testnet coins worthless and mining easy (keeping them worthless). These two differences not easy to maintain, because with the increase in use of advanced mining equipment on testnet (GPUs and ASICs), mining difficulty also increases, making testnet coins not worthless. Solution: tesnet periodically scrapped starting from a new genesis block, resetting the difficulty (now on tesnet3, blockchain actually 20GB or more). Aside: "One good way to run a testnet node is as a virtual machine image (e.g., VirtualBox, Docker, Cloud Server, etc.) dedicated for that purpose." Any software development intended for production use on mainnet should first be tested through testnet (protects developers against monetary loss due to bugs, protects network from unintended behaviour due to bugs).
+    \item \textit{segnet} ... The Segregated Witness Testnet: In 2016, a special-purpose testnet was launched to aid in development and testing of Segregated Witness (aka segwit; see [segwit]). This test blockchain is called segnet and can be joined by running a special version (branch) of Bitcoin Core. Since segwit was added to testnet3, it is no longer necessary to use segnet for testing of segwit features. In the future it is likely we will see other testnet blockchains that are specifically designed to test a single feature or major architectural change, like segnet.
+    \item \textit{Regtest}:The Local Blockchain: Regtest, which stands for "Regression Testing," is a Bitcoin Core feature that allows you to create a local blockchain for testing purposes. Unlike testnet3, which is a public and shared test blockchain, the regtest blockchains are intended to be run as closed systems for local testing. You launch a regtest blockchain from scratch, creating a local genesis block. You may add other nodes to the network, or run it with a single node only to test the Bitcoin Core software.
+\end{itemize}
+
+\subsection{Using Test Blockchains for Development}
+\noindent Bitcoin’s various blockchains (regtest, segnet, testnet3, mainnet) offer a range of testing environments for bitcoin development. Use the test blockchains whether you are developing for Bitcoin Core, or another full-node consensus client; an application such as a wallet, exchange, ecommerce site; or even developing novel smart contracts and complex scripts.
+
+You can use the test blockchains to establish a development pipeline. Test your code locally on a regtest as you develop it. Once you are ready to try it on a public network, switch to testnet to expose your code to a more dynamic environment with more diversity of code and applications. Finally, once you are confident your code works as expected, switch to mainnet to deploy it in production. As you make changes, improvements, bug fixes, etc., start the pipeline again, deploying each change first on regtest, then on testnet, and finally into production.
+\section{Mining and Consensus}
+
+\subsection{Introduction}
+
+\subsection{Decentralized Consensus}
+
+\noindent \textbf{Question}: How is it possible for an authoritative, trusted, public, and global ledger/record of ownership (i.e. the blockchain) to occur without a central authority (or w/o any trust at all, really)? \textbf{Answer}: Decentralized, \textit{emergent consensus} from the interplay of four processes that occur independently on nodes across the network:
+
+\begin{itemize}
+    \item Independent verification of each transaction, by every full node, based on a comprehensive list of criteria
+    \item Independent aggregation of those transactions into new blocks by mining nodes, coupled with demonstrated computation through a Proof-of-Work algorithm
+    \item Independent verification of the new blocks by every node and assembly into a chain
+    \item Independent selection, by every node, of the chain with the most cumulative computation demonstrated through Proof-of-Work
+\end{itemize}
+
+\subsection{Independent Verification of Transactions}
+\noindent Every node independently verifies propagated transactions before propagating it further so as to build a pool of valid but unconfirmed transactions called \textit{transaction pool}, \textit{memory pool}, or \textit{mempool}. The (dynamic) criteria for transaction validation (otherwise discarded): syntax and data structure correct, neither I/O empty, 100 $\leq$ size (bytes) $<$ \texttt{MAX\char`_BLOCK\char`_SIZE}, dust threshold $<$ each output (as well as total) $<$ 21m coins, none of inputs have hash=0, N=-1 (coinbase transactions should not be relayed), 
+
+\begin{itemize}
+    \item The transaction’s syntax and data structure must be correct.
+    \item Neither lists of inputs or outputs are empty.
+    \item The transaction size in bytes is less than $MAX_BLOCK_SIZE$.
+    \item Each output value, as well as the total, must be within the allowed range of values (less than 21m coins, more than the dust threshold).
+    \item None of the inputs have hash=0, N=–1 (coinbase transactions should not be relayed).
+    \item nLocktime is equal to $INT_MAX$, or nLocktime and nSequence values are satisfied according to MedianTimePast.
+    \item The transaction size in bytes is greater than or equal to 100.
+    \item The number of signature operations (SIGOPS) contained in the transaction is less than the signature operation limit.
+    \item The unlocking script (scriptSig) can only push numbers on the stack, and the locking script (scriptPubkey) must match IsStandard forms (this rejects "nonstandard" transactions).
+    \item A matching transaction in the pool, or in a block in the main branch, must exist.
+    \item For each input, if the referenced output exists in any other transaction in the pool, the transaction must be rejected.
+    \item For each input, look in the main branch and the transaction pool to find the referenced output transaction. If the output transaction is missing for any input, this will be an orphan transaction. Add to the orphan transactions pool, if a matching transaction is not already in the pool.
+    \item For each input, if the referenced output transaction is a coinbase output, it must have at least $COINBASE_MATURITY$ (100) confirmations.
+    \item For each input, the referenced output must exist and cannot already be spent.
+    \item Using the referenced output transactions to get input values, check that each input value, as well as the sum, are in the allowed range of values (less than 21m coins, more than 0).
+    \item Reject if the sum of input values is less than sum of output values.
+    \item Reject if transaction fee would be too low (minRelayTxFee) to get into an empty block.
+    \item The unlocking scripts for each input must validate against the corresponding output locking scripts.
+\end{itemize}
+
+\subsection{Mining Nodes}
+\begin{itemize}
+    \item Recall: not all miners are full nodes (see mining pools)
+    \item Like every other node, miners receive and propagate unconfirmed transactions on the network, but, in addition to this, aggregate these transactions into new blocks
+    \item Like every other node, miners listen for blocks propagated on network, with the added meaning that mined block is simultaneously end of last round and beginning of new round of mining 
+\end{itemize}
+
+\subsection{Aggregating Transactions into Blocks}
+\noindent Recall: Nodes (including miners) collect, validate (if successful, added and kept in memory pool until on blockchain. Memory pool not global), and propagate transactions. Miners also aggregate transactions into \textit{candidate block}. Miner simultaneously listens for transactions, tries to mine new block, and listens for blocks discovered by other nodes. While doing this, it was also collecting transactions in preparation for the next block. When block received, validated, compared against mempool transactions for removal from mempool. Empty candidate block immediately constructed. 
+
+\subsubsection{The Coinbase Transaction}
+\noindent First transaction in block is coinbase transaction. Contains reward for mining effort (coinbase reward (halved every 210,000 blocks) and transaction fees of all transactions included in block (implicitly derived between input and output)). Transaction created by miner, payment to own wallet. Transaction does not consume UTXO as input, but has only one input (the coinbase) which creates bitcoin from nothing, and one output to miner's own address
+
+\subsubsection{Coinbase Rewards and Fees}
+
+\noindent Constructing coinbase transaction: (1) Total Fees = Sum(Inputs) - Sum(Outputs), (2) calculate reward from block height
+
+\begin{figure}[H]
+    %\centering
+    \includegraphics[scale = 0.6]{Capture}
+    \caption{Caption}
+    \label{fig:my_label}
+\end{figure}
+
+\noindent Bindary right shift operator used because more efficient than repeated divisions. As a final step, the coinbase reward (nSubsidy) is added to the transaction fees (nFees), and the sum is returned. Coinbase transaction then constructed with these calculations done.
+\noindent Question: If Jing’s mining node writes the coinbase transaction, what stops Jing from "rewarding" himself 100 or 1000 bitcoin? The answer is that an incorrect reward would result in the block being deemed invalid by everyone else, wasting Jing’s electricity used for Proof-of-Work. Jing only gets to spend the reward if the block is accepted by everyone.
+
+\subsubsection{Structure of the Coinbase Transaction}
+
+\begin{table}[H]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Size}} & \multicolumn{1}{c|}{\textbf{Field}} & \multicolumn{1}{c|}{\textbf{Description}} \\ \hline
+32 bytes & Transaction Hash & Pointer to the transaction containing the UTXO to be spent \\ \hline
+4 bytes & Output Index & The index number of the UTXO to be spent, first one is 0 \\ \hline
+1–9 bytes (VarInt) & Unlocking-Script Size & Unlocking-Script length in bytes, to follow \\ \hline
+Variable & Unlocking-Script & A script that fulfills the conditions of the UTXO locking script \\ \hline
+4 bytes & Sequence Number & Currently disabled Tx-replacement feature, set to 0xFFFFFFFF \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Size}} & \multicolumn{1}{c|}{\textbf{Field}} & \multicolumn{1}{c|}{\textbf{Description}} \\ \hline
+32 bytes & Transaction Hash & All bits are zero: Not a transaction hash reference \\ \hline
+4 bytes & Output Index & All bits are ones: 0xFFFFFFFF \\ \hline
+1–9 bytes (VarInt) & Coinbase Data Size & Length of the coinbase data, from 2 to 100 bytes \\ \hline
+Variable & Coinbase Data & Arbitrary data used for extra nonce and mining tags. In v2 blocks; must begin with block height \\ \hline
+4 bytes & Sequence Number & Currently disabled Tx-replacement feature, set to 0xFFFFFFFF \\ \hline
+\end{tabular}
+\end{table}
+
+\noindent In a coinbase transaction, the first two fields are set to values that do not represent a UTXO reference. 
+
+\subsubsection{Coinbase Data}
+\noindent Except for first few bytes (BIP-34, version 2 blocks), coinbase data is arbitrary. Currently, miners use the coinbase data to include extra nonce values and strings identifying the mining pool. Beginning of field must contain block height index as a script "push" operation. See example coinbase data: 03443b0403858402062f503253482f. 03: instructs script execution engine to push the next three bytes onto the script stack. Next three bytes (0x443b04) are block height encoded in little-endian format (backward, least-significant byte first). Next few (0385840206) are used to encode an extra nonce, or random value, used to find a suitable Proof-of-Work solution. The final part (2f503253482f) is ASCII-encoded string /P2SH/ (versus p2sh/CHV) which indicates that mining node supports P2SH improvement as defined by BIP-16 not BIP-17 (vote: BIP-16 elected as winner). 
+
+\subsection{Constructing the Block Header}
+
+\noindent Recall: 6 fields defining the structure of block header. Added points: At the time that block 277,316 was mined, the version number describing the block structure is version 2, which is encoded in little-endian format in 4 bytes as 0x02000000. For previous block hash, by selecting the specific parent block, indicated by the Previous Block Hash field in the candidate block header, Jing is committing his mining power to extending the chain that ends in that specific block. In essence, this is how Jing "votes" with his mining power for the longest-difficulty valid chain. Jing’s node then fills in the target, which defines the required Proof-of-Work to make this a valid block. The target is stored in the block as a "target bits" metric, which is a mantissa-exponent encoding of the target. The encoding has a 1-byte exponent, followed by a 3-byte mantissa (coefficient). In block 277,316, for example, the target bits value is 0x1903a30c. The first part 0x19 is a hexadecimal exponent, while the next part, 0x03a30c, is the coefficient. The final field is the nonce, which is initialized to zero. With all the other fields filled, the block header is now complete and the process of mining can begin. The goal is now to find a value for the nonce that results in a block header hash that is less than the target. The mining node will need to test billions or trillions of nonce values before a nonce is found that satisfies the requirement.
+
+\subsection{Mining the Block}
+\subsubsection{Proof-of-Work Algorithm}
+\begin{itemize}
+    \item Properties of a hash algorithm: arbitrary-length input $\rightarrow$ fixed-length deterministic output (digital fingerprint of input). Deterministic $\implies$ easily verifiable (one hash for POW)
+    \item Key characteristic of a \textit{cryptographic} hash algorithm is that it is \textit{collision-resistant}. Corollary: Virtually impossible to select an input in such a way as to produce a desired output, other than trying random inputs
+    \item SHA256 cryptographic hash algorithm used for proof-of-work. In textbook example, a variable integer (i.e. the \textit{nonce}) is appended to the phrase "I am Satoshi Nakamoto" to vary the output (called the \textit{hash} or \textit{digest}). Again, this works because the output depends on every part of the input, and so any change results in a completely different hash
+    \item \textit{Target} threshold serves as a challenge, which, in numerical terms means finding a hash value less than a certain number (i.e. the target), which translates to a hash value with a certain number of leading zeroes. Adjusting the target means changing the difficulty (target and difficulty are inversely related)
+    \item Since SHA256 is deterministic, the probability of an outcome based on the difficulty imposed by the target can be calculated before-hand using statistics. The successful result is thus a proof-of-work.
+    \item In Bitcoin's Proof-of-Work, miner constructs a candidate block filled with transactions, miner then calculates hash of block header to see if smaller than current target. If not, miner modifies nonce (usually by incrementing by one) and tries again. Current difficulty is set in bitcoin network (in bits, how many of the leading bits must be zero) so that at total network processing power (in hashes per second), block is mined every 10 minutes on average. Every increase in bit approximately doubles time it takes to find a solution. Again, increasing difficulty decreases the acceptable range of hashes.
+\end{itemize}
+\subsubsection{Target Representation}
+\begin{itemize}
+    \item Target in "target bits" or just "bits" notation (coefficient/exponent format): \(target = coefficient * 2^{(8*(exponent-3))}\). In example 0x1903a30c, first 2 hex digits exponent, 6 remaining hex digits coefficient. Recall: result output and must be displayed as 64-digit field (hex) or 256-digit field (binary). Question: How to calculate mining time from hash rate and difficulty?
+\end{itemize}
+\subsubsection{Retargeting to Adjust Difficulty}
+\begin{itemize}
+    \item Recall: Target determines difficulty which determines how long it takes to find a solution to the Proof-of-Work algorithm
+    \item Why is the difficulty adjustable? The target is set so that the current mining power (of entire network) will result in a 10-minute block interval (average). Readjusting account for increase in the number of participants and computer power. Block interval underpins frequency of currency issuance and speed of transaction settlement.
+    \item Who adjusts it? Sticking to theme of a completely decentralized network, re-targeting occurs automatically and on every node independently every 2,016 blocks (happens every 2,016 blocks, based on previous 2,015 blocks due to off-by-one error in original Bitcoin Core client, resulting in retargeting bias towards higher difficulty by 0.05 percent)
+    \item How is it adjusted? Equation summarized as: \(New Target = Old Target * (Actual Time of Last 2016 Blocks / 20160 minutes)\) (see CalculateNextWorkRequired() in pow.cpp (parameters Interval (2,016 blocks) and TargetTimespan (two weeks as 1,209,600 seconds) defined in chainparams.cpp). To avoid extreme volatility in the difficulty, adjustments must be less than a factor of four. If greater, readjusted by a factor of four and no more. This means that several 2,016 block cycles might be required to (near) remove discrepancies between hashing power and difficulty as imbalances can persist through near-future block cycles.
+    \item Note: target independant of the number of transactions or the value of transactions (recall: the hash of the block header is being made). Therefore, hashing power and electricity expended also independent of these two. This means that Bitcoin can scale up, achieve broader adoption, and remain secure without any increase in hashing power from today's levels. The increase in hashing power represents market forces as new miners enter the market to compete for the reward. As long as enough hashing power is under the control of miners acting honestly in pursuit of the reward, it is enough to prevent "takeover" attacks and, therefore, it is enough to secure bitcoin. The difficulty of mining is closely related to the cost of electricity and the exchange rate of bitcoin vis-a-vis the currency used to pay for electricity. High-performance mining systems are about as efficient as possible with the current generation of silicon fabrication, converting electricity into hashing computation at the highest rate possible. The primary influence on the mining market is the price of one kilowatt-hour of electricity in bitcoin, because that determines the profitability of mining and therefore the incentives to enter or exit the mining market.
+\end{itemize}
+
+\subsection{Successfully Mining the Block}
+\begin{itemize}
+    \item After candidate block prepared for mining, mining node sends block header to mining hardware (aside: Jing has several hardware mining rigs with application-specific integrated circuits, where hundreds of thousands of integrated circuits run the SHA256 algorithm in parallel at incredible speeds. Many of these specialized machines are connected to his mining node over USB or a local area network), which starts testing nonce values. Nonce is only 32 bits, so after exhausting all nonce possibilities, mining hardware changes the block header (adjusting the coinbase extra nonce space or timestamp) and resets the nonce counter, testing new combinations. If found, hardware machine sends solution back to mining node. Hash of nonce inserted into block header should produce result less than target. Mining node immediately transmits block to all its peers, who in turn receive, validate, propagate. Once validated, each node adds to own copy of blockchain and mining node immediately abandon their efforts to mine for block at same height, and start computing next block in chain, using received block as parent. By building on top of Jing’s newly discovered block, the other miners are essentially "voting" with their mining power and endorsing Jing’s block and the chain it extends.
+\end{itemize}
+
+\subsection{Validating a New Block}
+\begin{itemize}
+    \item Independant validation by every node using the same rules ensures that only valid blocks propagated and ensures that miners cannot cheat (disincentive: cost of electricity without compensation in the form of reward). Thus, independant validation key component of decentralized consensus. Criteria for validation as set by Bitcoin Core:
+    \begin{itemize}
+        \item The block data structure is syntactically valid
+        \item The block header hash is less than the target (enforces the Proof-of-Work)
+        \item The block timestamp is less than two hours in the future (allowing for time errors)
+        \item The block size is within acceptable limits
+        \item The first transaction (and only the first) is a coinbase transaction
+        \item All transactions within the block are valid using the transaction checklist discussed in Independent Verification of Transactions
+    \end{itemize}
+\end{itemize}
+\noindent When precisely can winning miner collect reward? After all or a reasonable amound of nodes validate block?
+
+\subsection{Assembling and Selecting Chains of Blocks}
+\begin{itemize}
+    \item Nodes maintain three sets of blocks: main chain, secondary chains, orphans. Invalid blocks rejected and not included anywhere.
+    \begin{itemize}
+        \item At any time, main chain is one with most cumulative Proof-of-Work associated with it (usually means chain with most blocks in it, unless there are two equal-length chains and one has more Proof-of-Work)
+        \item If valid block received and no parent found in existing chains, that block considered an orphan (temporally placed in orphan block pool). Orphan blocks usually occur when two blocks that were mined within a short time of each other are received in reverse order (child before parent). How could this happen when mining interval is approximately 10 minutes?
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Blockchain Forks}
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_1002.png}
+    \captionof{figure}{Before the fork -- all nodes have the same perspective}
+    \label{fig:fig2}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Note: blockchain is a decentralized data structure, meaning that each node has its own perspective of the global blockchain. As each node receives blocks from its neighbours, it updates its own copy of the blockchain. Blockchain forks occur naturally due to transmission delays in the global network, but as long as each node selects the greatest-cumulative-work chain, the global bitcoin network eventually converges to a consistent state.
+    \item For illustration purposes, each node contains a shape that it believes is currently the tip of the main chain
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_1003.png}
+    \captionof{figure}{Visualization of a blockchain fork event: two blocks found simultaneously}
+    \label{fig:fig1}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Both blocks valid. Both blocks extend same parent. Both blocks likely contain most of the same transactions, with only perhaps a few differences in the order of transactions.
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_1004.png}
+    \captionof{figure}{Visualization of a blockchain fork event: two blocks propagate, splitting the network}
+    \label{fig:fig1}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Both blocks valid. Both blocks extend same parent. Both blocks likely contain most of the same transactions, with only perhaps a few differences in the order of transactions.
+    \item Block that extends the main chain is whichever was received first. Whichever block that was received second forms a secondary chain.
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_1005.png}
+    \captionof{figure}{Visualization of a blockchain fork event: a new block extends one fork, reconverging the network}
+    \label{fig:fig1}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Nodes are voting with their hashing power in support and in dedication of and to the chain that they have elected as their main chain. 
+    \item Forks almost always resolved in one block (forks extending to two blocks very unlikely)
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\begin{minipage}{0.45\linewidth}
+    \includegraphics[scale=0.5]{mbc2_1006.png}
+    \captionof{figure}{Visualization of a blockchain fork event: the network reconverges on a new longest chain}
+    \label{fig:fig1}  
+\end{minipage}\hfil
+\begin{minipage}{0.45\linewidth}
+\begin{itemize}
+    \item Chain reconvergence involves nodes being forced to revise their view of the blockchain to incorporate the new evidence of a longer chain. Upside-down triangle main chain now becomes secondary chain, and main chain switches over to diamond. Work done to extend previous main chain stopped, because their candidate block is an "orphan", as its parent "upside-down-triangle" is no longer on the longest chain? 
+    This is a chain reconvergence, because those nodes are forced to revise their view of the blockchain to incorporate the new evidence of a longer chain. Any miners working on extending the chain star-upside-down-triangle will now stop that work because their candidate block is an "orphan," as its parent "upside-down-triangle" is no longer on the longest chain. The transactions within "upside-down-triangle" that are not within "triangle" are re-inserted in the mempool for inclusion in the next block to become a part of the main chain. The entire network reconverges on a single blockchain star-triangle-rhombus, with "rhombus" as the last block in the chain. All miners immediately start working on candidate blocks that reference "rhombus" as their parent to extend the star-triangle-rhombus chain.
+\end{itemize}
+\end{minipage}
+\end{tcolorbox}
+
+\noindent Bitcoin’s block interval of 10 minutes is a design compromise between fast confirmation times (settlement of transactions) and the probability of a fork. A faster block time would make transactions clear faster but lead to more frequent blockchain forks, whereas a slower block time would decrease the number of forks but make settlement slower.
+
+\subsection{Mining and the Hashing Race}
+\begin{itemize}
+    \item Total hashing power of bitcoin network has grown exponentially every year due to a larger network of participants and technological developments, most notably CPU to GPU mining, FPGAs, and ASICs. The difficulty has been met to match this exponential increase. Aside: We are coming to the forefront of Moore's law, so "here are no more giant leaps left in bitcoin mining". However, exponential increase expected to increase due to higher density data centers.
+\end{itemize}
+
+\subsubsection{The Extra Nonce Solution}
+\begin{itemize}
+    \item With the increase in difficulty, the nonce was iterated through its entirety before a valid solution was found. Need an extra source of change in block header $\rightarrow$ change timestamp to account for elapsed time. With increase in hashing power, this solution could cause block to be invalid $\rightarrow$ use coinbase transaction as extra nonce space (also changes merkle root) (8 bytes extra nonce, 4 bytes standard). If iterate through all, change timestamp (could further expand in coinbase in future)
+\end{itemize}
+
+\subsubsection{Mining Pools}
+\begin{itemize}
+    \item Very unlikely for solo miners to offset electricity and hardware costs (aside: commercial systems) (answer to previous question, probability worked out with: P = (miner's hash rate / global hash rate at beginning of time period) * (number blocks in x years) = 0.98 -- however, uncertainty still involved, plus difficulty bound to increase roughly exponentially, so mining rig obsolete in around one year's time). Mining pool splits reward but uncertainty reduced (frequent payout means lower risk). Financial payouts of mining pool "only make sense at very low very electricity cost and only at very large scale"
+    \item Mining pools coordinate over specialized pool-mining protocols. Efforts of each miner synchronized and shared with rest of pool, thereby earning share of reward (based on share of work done, measured and verified using Proof-of-Work algorithm). Successful blocks pay reward to a pool bitcoin address, rather than individual miners (pool server provides percentage fee of rewards for providing pool-mining service) ("The pool server will periodically make payments to the miners' bitcoin addresses, once their share of the rewards has reached a certain threshold."). Pool sets a higher target (lower difficulty) than network target that serves as incentive for smaller pool miners to participate in pool (success gives proof that node has done the hashing work to find that result). More importantly, the work to find shares contributes, in a statistically measurable way, to the overall effort to find a hash lower than the bitcoin network’s target. 
+\end{itemize}
+
+\noindent \textbf{Managed Pools}
+\begin{itemize}
+    \item Managed pools means a company or individual (the \textit{pool operator}) runs the pool server (specialized software and pool-mining protocl for coordination). Pool operator charges percentage fee of earnings. Why? Pool operator connects to full node for full blockchain access for transaction and block validation on behalf of miners (good for miners, lots of RAM and disk for pool operator). Plus, maintenance, monitoring, and upgrade of software running on the full node (otherwise hurt profitability of miners). Miners connect to server using a mining protocol such as Stratum (STM) or GetBlockTemplate (GBT). Pool server constructs full candidate block, sends header template to miners. 
+\end{itemize}
+
+\noindent \textbf{Peer-to-peer mining pool (P2Pool)}
+\begin{itemize}
+    \item Problem: pool miner can cheat (contain double-spend transactions or invalidate blocks) and represents a centralized, single-point-of-failure (server can be downed or slowed by denial of service attacks). Solution: decentralize functions of a pool server through a \textit{share chain} (instead of pool server keeping track of shares and rewards, all pool miners keep track of all shares using a decentralized consensus mechanism like bitcoin's blockchain consensus mechanism, using a blockchain at lower difficulty). Disadvantage: pool miners must have enough disk space, memory, and internet bandwidth to supoort a full bitcoin node and the P2Pool node software (?) and still vulnerable to 51 percent consensus attacks against share chain Local P2Pool node, which sends block templates to miners (miners construct own candidate blocks like solo miners, and mine collaboratively on share chain)
+\end{itemize}
+
+\subsection{Consensus Attacks}
+\begin{itemize}
+    \item Consensus mechanism depends on having the majority of miners acting honestly out of self-interest. Consensus attacks only affect future (denial-of-service attacks) or recent past (tens of blocks) (older blocks practically immutable). Consensus attacks do not affect security of private key and signing algorithm (ECDSA). Consensus attacks cannot steal bitcoin, spend bitcoin without signatures, redirect bitcoin, or otherwise change past transactions or ownership records.
+    \item Example consensus attack -- 51 percent attack: (1) Fork to "double-spend" OWN transactions, for which the attacker can produce a valid signature. Invalidates transactions in previous blocks, causing attacker to get an irreversible exchange payment or produce without paying for it. Solution: for high-value purchases, wait at least 6 confirmations, or the merchant should use an escrow multisignature account, again waiting for several confirmations after the escrow account is funded. For high-value items, this is still conveniant and efficient to conventional payments? Low-value items not worth it, because the risk of a double-spend on a cup of coffee is low in comparison to the convenience of rapid customer service. This is similar to the practice of coffee shops that accept credit card payments without a signature for amounts below 25 dollars, because the risk of a credit-card chargeback is low while the cost of delaying the transaction to obtain a signature is comparatively larger. (2) Sustained denial-of-service against specific bitcoin addresses by ignoring those transactions or forking and remining if included on a block mined by another miner. Note: ONLY pool server can have malicious intent (others mine with automated miners and cannot monitor every transaction or block). Note: 51 percent only threshold in which success of attack becomes more likely than not. "Security research groups have used statistical modeling to claim that various types of consensus attacks are possible with as litte as 30 percent of the hashing power". More hashing power, longer the fork you can deliberately create, the more blocks in the recent past can invalidate, or the more blocks in the future can control.
+    \item Exponential increase in total network hashing power makes consensus attacks more difficult (practically impossible for a single miner), but possible for mining pools due to the centralization of control to the pool operator (construction of candidate blocks and which transactions included controlled). In addition, non-profit attacks aimed at disrupting bitcoin network possible for well-funded, most likely state-sponsored attackers.  Alternatively, a well-funded attacker could attack bitcoin’s consensus by simultaneously amassing mining hardware, compromising pool operators, and attacking other pools with denial-of-service. Undoubtedly, a serious consensus attack would erode confidence in bitcoin in the short term, possibly causing a significant price decline. However, the bitcoin network and software are constantly evolving, so consensus attacks would be met with immediate countermeasures by the bitcoin community, making bitcoin more robust (public project).
+\end{itemize}
+
+\subsection{Changing the Consensus Rules}
+\begin{itemize}
+    \item Consensus rules determine the validity of transactions and blocks. Local perspectives converge to a network-wide blockchain. Can be upgraded but difficult.
+\end{itemize}
+\subsubsection{Hard Forks}
+\begin{itemize}
+    \item Definition: a fork due to a change in the consensus rules (network DOES NOT re-converge, two chains evolve independently). Change in consensus rules occur either due to a bug in the consensus rules or a deliberate change in the implementation of the consensus rules (software fork). Hard fork not "forward compatible" (invalid transaction AND/OR block) ("valid" blocks that reference invalid block as parent is orphan block and not processed). Coordination required! Network partitioned/split
+\end{itemize}
+\subsubsection{Hard Forks: Software, Network, Mining, and Chain}
+\begin{itemize}
+    \item Software forks (open source) precede deliberate hard forks. Software forks become hard forks only after new implementation developed, adopted, and launched (necessary precondition, but not itself sufficient) ("for a hard fork to occur, the competing implementation must be adopted and the new rules activated, by miners, wallets, and intermediary nodes"). Software forks that do not change the consensus rules (barring a bug) can coexist and inter-operate on network without causing hard fork.
+    \item "Consensus rules may differ in obvious and explicit ways, in the validation of transactions or blocks. The rules may also differ in more subtle ways, in the implementation of the consensus rules as they apply to bitcoin scripts or cryptographic primitives such as digital signatures. Finally, the consensus rules may differ in unanticipated ways because of implicit consensus constraints imposed by system limitations or implementation details. An example of the latter was seen in the unanticipated hard fork during the upgrade of Bitcoin Core 0.7 to 0.8, which was caused by a limitation in the Berkley DB implementation used to store blocks." 
+    \item Conceptually, we can think of a hard fork as developing in four stages: a software fork, a network fork, a mining fork, and a chain fork. When this forked implementation is deployed in the network, a certain percentage of miners, wallet users, and intermediate nodes may adopt and run this implementation. A resulting fork will depend upon whether the new consensus rules apply to blocks, transactions, or some other aspect of the system. If the new consensus rules pertain to transactions, then a wallet creating a transaction under the new rules may precipitate a network fork, followed by a hard fork when the transaction is mined into a block. If the new rules pertain to blocks, then the hard fork process will begin when a block is mined under the new rules.
+\end{itemize}
+\subsubsection{Diverging Miners and Difficulty}
+\begin{itemize}
+    \item Scenario: Hard fork causing split in mining power across network along with fork occuring immediately after a re-targeting period (recall: difficulty readjusts to produce 10 minute after 2016 blocks)
+\end{itemize}
+\subsubsection{Contentious Hard Forks}
+\begin{itemize}
+    \item We are at the dawn of this new frontier called consensus software development (new development tools, practices, methodologies, and communities will emerge) (aside: open source software development)
+    \item Hard fork risky because they risk partitioning system, unless you have near-unanimous consent. Contentious and controversial issue, with people on left, right, and middle sides.
+\end{itemize}
+\subsubsection{Soft Forks}
+\begin{itemize}
+    \item Soft fork not actually a fork. Forward-compatible change to consensus rule. Can only be used to constrain consensus rules, not expand them (new rules can only limit what is valid) (otherwise hard fork triggered). Soft forks dont require all nodes to upgrade or force non-upgraded nodes out of consensus. " In order to be forward compatible, transactions and blocks created under the new rules must be valid under the old rules too, but not vice versa."
+\end{itemize}
+
+\textbf{Soft forks redefining NOP opcodes}
+\begin{itemize}
+    \item NOP1-NOP10 in Bitcoin Script null-potent operators. Soft fork to give them new meaning (NOP code for any old client) (example: BIP-65, NOP2 interpreted as OP_CHECKLOCKTIMEVERIFY)
+\end{itemize}
+
+\textbf{Other ways to soft fork upgrade}
+\begin{itemize}
+    \item Segwit (initially envisioned as a hard fork, as it modified a fundamental structure: transactions): an architectural change to the structure of a transaction, which moves the unlocking script (witness) from inside the transaction to an external data structure (segregating it). Was able to be introduced as a soft fork: the mechanism used for this is a modification of the locking script of UTXO created under segwit rules, such that unmodified clients see the locking script as redeemable with any unlocking script whatsoever. 
+\end{itemize}
+
+\subsubsection{Criticisms of Soft Forks}
+\begin{itemize}
+    \item NOP opcodes uncontroversial (explicit goal, non-disruptive)
+    \item Common criticism: Technical debt, validation relaxation (applies to NOP upgrades as well), irreversible upgrades
+\end{itemize}
+
+\subsection{Soft Fork Signalling with Block Version}
+\subsubsection{BIP-34 Signaling and Activation}
+\begin{itemize}
+    \item Block version number used to signal readiness (prior to: "1", convention not enforced by consensus). BIP-34 changed consensus rule where coinbase field in coinbase transaction input contained the block height.
+    \item Two-step activation mechanism (based on rolling window of 1000 blocks) (prior to these steps, individual miners who set block version to "2" voice support, but don't have to take any action): 
+    \begin{itemize}
+        \item 75 percent of last 1000: version 2 blocks must contain block height (otherwise invalid), version 1 dont have to (old and new consensus rules coexist during this period)
+        \item 95 percent: all must comply. Version 1 blocks no longer valid
+    \end{itemize}
+    \item Used twice more to signal and activate soft forks with BIP-66 and BIP-65. After BIP-65 activation, BIP-9 became standard
+    \item Limitations: Coordination and agreement on sequencing/prioritization of soft fork proposals required, since integer value of block version number meant that only one could be activated at a time; because the block version was incremented, the mechanism didn’t offer a straightforward way to reject a change and then propose a different one. If old clients were still running, they could mistake signaling for a new change as signaling for the previously rejected change; Each new change irrevocably reduced the available block versions for future changes
+\end{itemize}
+
+\subsubsection{BIP-9 Signaling and Activation}
+\begin{itemize}
+    \item "BIP-9 interprets the block version as a bit field instead of an integer"; Proposed changes are identified by a data structure that contains the following fields: name, bit (0 through 28 (versions 1 to 4 already used) $\rightarrow$ independently and simultaneously signal readiness on 29 different proposals), starttime (based on MTP), endtime (based on MTP). TIMEOUT set in proposal. After TIMEOUT, whether proposal activated or rejected, bits can be recycled, even for same proposal. "In short, we should not expect to see reuse until all 29 bits have been used once"
+    \item Difference: for every retarget period, if the sum of blocks signaling for a proposal exceeds 95 percent (1916 of 2016), the proposal will be activated one retarget period later.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.2]{mbc2_1010.png}
+    \caption{BIP-9 state transition diagram}
+    \label{fig:my_label}
+\end{figure}
+
+\subsection{Consensus Software Development}
+\begin{itemize}
+    \item Evolving, continuous discussion. By its nature, decentralized system where power diffused and unilateral decisions cannot be made makes coordination vital and consensus changes more difficult (weakness? author sees it as one of its greatest strengths). The bar for consensus is also high --Status quo is the stable state of this system with only a few changes possible if there is strong consensus by a very large majority. The 95 percent threshold for soft forks is reflective of this reality. Even if 51 percent of miners can theoretically change the rules by simple majority (51 percent), they are constrained by the consent of the other constituencies. If they act unilaterally, the rest of the participants may simply refuse to follow them, keeping the economic activity on a minority chain. Without economic activity (transactions, merchants, wallets, exchanges), the miners will be mining a worthless coin with empty blocks. Hard forks and soft forks aren't perfect -- the one constant characteristic of consensus software development is that change is difficult and consensus forces compromise.
 \end{itemize}
 \end{document}
